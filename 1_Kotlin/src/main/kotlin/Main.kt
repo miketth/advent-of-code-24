@@ -19,10 +19,15 @@ fun main() {
     left.sort()
     right.sort()
 
-    val solution = left
+    val solution1 = left
         .zip(right)
         .sumOf { (left, right) -> abs(left - right) }
 
-    println(solution)
+    println(solution1)
 
+    val solution2 = left.sumOf { num ->
+        num * right.count { it == num }
+    }
+
+    println(solution2)
 }
