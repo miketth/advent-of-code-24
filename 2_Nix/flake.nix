@@ -4,8 +4,10 @@
   inputs.nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-24.11";
 
   outputs = { self, nixpkgs }: {
-    part-1 = import ./solution.nix {
+    default = import ./solution.nix {
       lib = nixpkgs.lib;
     };
+    part-1 = self.outputs.default.safeCount;
+    part-2 = self.outputs.default.safeCountDampened;
   };
 }

@@ -37,4 +37,23 @@ let
 
   safeCount = builtins.foldl' (acc: item: if item then acc+1 else acc) 0 safeness;
 
-in safeCount
+  isSafeDampened = (report: builtins.foldl' ({ before, after, good }: item: let
+    this = before ++ after;
+    safe = isSafe this;
+  in {
+    good = good || safe;
+    before = before ++ [ item ];
+    after = if builtins.length after > 0 then builtins.tail after else [];
+  }) {
+    good = false;
+    before = [];
+    after = builtins.tail report;
+  } report);
+
+
+  safenessDampened = map (report: isSafeDampened report) reports;
+  safeCountDampened = builtins.foldl' (acc: item: if item.good then acc+1 else acc) 0 safenessDampened;
+
+in {
+  inherit safeCount safeCountDampened;
+}
