@@ -1,5 +1,7 @@
 { lib, ... }:
 let
+  trace = (a: builtins.trace (builtins.toJSON a) a);
+
   split = (separator: text:
     builtins.filter (part: part != "" && part != [] && part != "\n") (builtins.split separator text)
   );
@@ -16,33 +18,18 @@ let
   in levels) lines;
 
 
-  isSafeIncreasing = (report: let
+  isSafeForRule = (ruleFn: (report: let
     folded = builtins.foldl' ({ prev, goodSoFar }: item: {
-      goodSoFar = goodSoFar && (
-        prev == null || (
-          item > prev && item <= prev + 3
-        )
-      );
+      goodSoFar = goodSoFar && (prev == null || ruleFn item prev);
       prev = item;
     }) {
       goodSoFar = true;
       prev = null;
     } report;
-  in folded.goodSoFar);
+  in folded.goodSoFar));
 
-  isSafeDecreasing = (report: let
-    folded = builtins.foldl' ({ prev, goodSoFar }: item: {
-      goodSoFar = goodSoFar && (
-        prev == null || (
-          item < prev && item >= prev - 3
-        )
-      );
-      prev = item;
-    }) {
-      goodSoFar = true;
-      prev = null;
-    } report;
-  in folded.goodSoFar);
+  isSafeIncreasing = isSafeForRule (item: prev: item > prev && item <= prev + 3);
+  isSafeDecreasing = isSafeForRule (item: prev: item < prev && item >= prev - 3);
 
   isSafe = (report: (isSafeIncreasing report) || (isSafeDecreasing report));
 
