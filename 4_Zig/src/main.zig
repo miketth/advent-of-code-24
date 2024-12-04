@@ -13,7 +13,7 @@ pub fn main() !void {
     const lines = try bufferToLines(allocator, buffer);
     defer allocator.free(lines);
 
-    const locations = try findX(allocator, lines);
+    const locations = try find(allocator, lines, 'X');
     defer allocator.free(locations);
 
     var sum: i64 = 0;
@@ -22,6 +22,20 @@ pub fn main() !void {
         sum += matches;
     }
     try stdout.print("{d}\n", .{sum});
+
+    // part 2:
+
+    const locationsPart2 = try find(allocator, lines, 'A');
+    defer allocator.free(locationsPart2);
+
+    var matches: i64 = 0;
+    for (locationsPart2) |location| {
+        const match = testPart2(lines, location);
+        if (match) {
+            matches += 1;
+        }
+    }
+    try stdout.print("{d}\n", .{matches});
 }
 
 fn fileToBuffer(allocator: std.mem.Allocator, path: []const u8) ![]const u8 {
@@ -50,7 +64,7 @@ fn bufferToLines(allocator: std.mem.Allocator, buffer: []const u8) ![][]const u8
     return slice;
 }
 
-fn findX(allocator: std.mem.Allocator, lines: [][]const u8) ![]const [2]usize {
+fn find(allocator: std.mem.Allocator, lines: [][]const u8, needle: u8) ![]const [2]usize {
     var result = std.ArrayList([2]usize).init(allocator);
     defer result.deinit();
 
@@ -59,7 +73,7 @@ fn findX(allocator: std.mem.Allocator, lines: [][]const u8) ![]const [2]usize {
         const line = lines[y];
         var x: usize = 0;
         while(x < line.len): (x+=1) {
-            if (line[x] == 'X') {
+            if (line[x] == needle) {
                 try result.append([2]usize{x, y});
             }
         }
@@ -88,6 +102,64 @@ fn testAll(lines: [][]const u8, location: [2]usize) i64 {
     }
 
     return matches;
+}
+
+fn testPart2(lines: [][]const u8, location: [2]usize) bool {
+    const x: i64 = @intCast(location[0]);
+    const y: i64 = @intCast(location[1]);
+
+    const leftX = x-1;
+    const rightX = x+1;
+    const topY = y-1;
+    const bottomY = y+1;
+
+    if (leftX < 0 or topY < 0) {
+        return false;
+    }
+
+    const yMax = lines.len - 1;
+    if (bottomY > yMax) {
+        return false;
+    }
+
+    const bottomLineLen = lines[@intCast(bottomY)].len;
+    if (bottomLineLen == 0) {
+        return false;
+    }
+
+    const xMax = bottomLineLen - 1;
+    if (rightX > xMax) {
+        return false;
+    }
+
+    const topLeft = lines[@intCast(topY)][@intCast(leftX)];
+    const topRight = lines[@intCast(topY)][@intCast(rightX)];
+    const bottomLeft = lines[@intCast(bottomY)][@intCast(leftX)];
+    const bottomRight = lines[@intCast(bottomY)][@intCast(rightX)];
+
+    // dir top-left to bottom-right
+    if (topLeft != 'M' and topLeft != 'S') {
+        return false;
+    }
+    if (topLeft == 'M' and bottomRight != 'S') {
+        return false;
+    }
+    if (topLeft == 'S' and bottomRight != 'M') {
+        return false;
+    }
+
+    // dir bottom-left to top-right
+    if (bottomLeft != 'M' and bottomLeft != 'S') {
+        return false;
+    }
+    if (bottomLeft == 'M' and topRight != 'S') {
+        return false;
+    }
+    if (bottomLeft == 'S' and topRight != 'M') {
+        return false;
+    }
+
+    return true;
 }
 
 fn testGoing(lines: [][]const u8, location: [2]usize, xStep: i64, yStep: i64) bool {
