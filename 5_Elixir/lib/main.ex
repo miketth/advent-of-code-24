@@ -4,12 +4,25 @@ defmodule Main do
       File.read!("input.txt")
       |> String.split("\n")
       |> parse()
-    solution =
+
+    part_1 =
       prints
       |> Enum.filter(fn item -> is_valid?(item, rules) end)
       |> Enum.map(&middle/1)
       |> Enum.sum()
-    IO.inspect(solution)
+    IO.inspect(part_1)
+
+    part_2 =
+      prints
+      |> Enum.filter(fn item -> !is_valid?(item, rules) end)
+      |> Enum.map(fn item -> fix_order(item, rules) end)
+      |> Enum.map(&middle/1)
+      |> Enum.sum()
+    IO.inspect(part_2)
+  end
+
+  def fix_order(pages, rules) do
+    Enum.sort(pages, fn a, b -> Enum.member?(default(rules[a]), b) end)
   end
 
   def is_valid?(print, rules) do is_valid?(print, rules, []) end
