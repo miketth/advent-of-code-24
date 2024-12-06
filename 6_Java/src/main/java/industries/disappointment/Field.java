@@ -3,9 +3,10 @@ package industries.disappointment;
 import java.util.LinkedList;
 import java.util.List;
 
-public interface Field {
+public interface Field extends Cloneable {
     void meetGuard(Guard guard);
     List<Direction> previousGuardDirections();
+    public Field clone();
 
     class Obstruction implements Field {
         @Override
@@ -16,6 +17,15 @@ public interface Field {
         @Override
         public List<Direction> previousGuardDirections() {
             return List.of();
+        }
+
+        @Override
+        public Obstruction clone() {
+            try {
+                return (Obstruction) super.clone();
+            } catch (CloneNotSupportedException e) {
+                return new Obstruction();
+            }
         }
     }
 
@@ -40,5 +50,17 @@ public interface Field {
         }
 
         public Empty() {}
+
+        @Override
+        public Empty clone() {
+            Empty empty;
+            try {
+                empty = (Empty) super.clone();
+            } catch (CloneNotSupportedException e) {
+                empty = new Empty();
+            }
+            empty.guardDirections = new LinkedList<>(guardDirections);
+            return empty;
+        }
     }
 }

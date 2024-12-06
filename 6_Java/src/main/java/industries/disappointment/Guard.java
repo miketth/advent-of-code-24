@@ -11,4 +11,9 @@ public class Guard {
     public Position nextPosition() {
         return position.move(direction);
     }
+
+    public Guard(Guard guard) {
+        this.position = new Position(guard.position.x, guard.position.y);
+        this.direction = guard.direction;
+    }
 }

@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class Solution {
 //    String filePath = "input_sample.txt";
@@ -46,10 +47,10 @@ public class Solution {
             throw new AssertionError("No guard found");
         }
 
-        walkGuard(guard, map);
+        var walkedMap = walkGuard(guard, map);
 
         var fieldsTouched = 0;
-        for (List<Field> row : map) {
+        for (List<Field> row : walkedMap) {
             for (Field field : row) {
                 if (!field.previousGuardDirections().isEmpty()) {
                     fieldsTouched++;
@@ -57,9 +58,33 @@ public class Solution {
             }
         }
         System.out.println(fieldsTouched);
+
+        var loops = 0;
+        for (int y = 0; y < map.size(); y++) {
+            var row = map.get(y);
+            for (int x = 0; x < row.size(); x++) {
+                var field = row.get(x);
+                if (field instanceof Field.Empty) {
+                    map.get(y).set(x, new Field.Obstruction());
+                    try {
+                        walkGuard(guard, map);
+                    } catch (AssertionError e) {
+                        loops++;
+                    }
+                    map.get(y).set(x, field);
+                }
+            }
+        }
+        System.out.println(loops);
     }
 
-    private void walkGuard(Guard guard, List<List<Field>> map) {
+    private List<List<Field>> walkGuard(Guard guard, List<List<Field>> map) {
+        guard = new Guard(guard);
+
+        map = map.stream().map(row -> {
+            return row.stream().map(Field::clone).collect(Collectors.toList());
+        }).collect(Collectors.toList());
+
         var maxPos = new Position(map.getFirst().size() - 1, map.size() - 1);
         var mapArea = new Area(new Position(0, 0), maxPos);
 
@@ -70,8 +95,15 @@ public class Solution {
             }
 
             var field = map.get(nextPosition.y).get(nextPosition.x);
+
+            if (field.previousGuardDirections().contains(guard.direction)) {
+                throw new AssertionError("Loop detected");
+            }
+
             field.meetGuard(guard);
         }
+
+        return map;
     }
 
     private Direction guardDirection(String item) {
