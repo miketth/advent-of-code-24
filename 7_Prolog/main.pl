@@ -34,11 +34,52 @@ is_valid_helper([Num|Nums], SumSoFar, SumAchieved) :-
 
 is_valid_helper([], Sum, Sum).
 
+count_valid_calibrations_sum_part2([], 0).
+count_valid_calibrations_sum_part2([Data|Datas], Sum) :-
+  calibration(ThisSum, _) = Data,
+  count_valid_calibrations_sum_part2(Datas, SumSoFar),
+  (is_valid_part2(Data) -> Sum is SumSoFar + ThisSum; Sum = SumSoFar).
 
+is_valid_part2(calibration(Sum, Nums)) :-
+  Sum = SumAchieved,
+  is_valid_helper_part2(Nums, 0, SumAchieved).
+
+is_valid_helper_part2([Num|Nums], SumSoFar, SumAchieved) :-
+  ThisRound is SumSoFar * Num,
+  is_valid_helper_part2(Nums, ThisRound, SumAchieved).
+
+is_valid_helper_part2([Num|Nums], SumSoFar, SumAchieved) :-
+  ThisRound is SumSoFar + Num,
+  is_valid_helper_part2(Nums, ThisRound, SumAchieved).
+
+is_valid_helper_part2([Num|Nums], SumSoFar, SumAchieved) :-
+  concat_num(SumSoFar, Num, ThisRound),
+  is_valid_helper_part2(Nums, ThisRound, SumAchieved).
+
+is_valid_helper_part2([], Sum, Sum).
+
+digits(0, 1).
+digits(Num, Digits) :- \+ Num is 0, digits_helper(Num, Digits).
+
+digits_helper(0, 0).
+digits_helper(Num, Digits) :-
+  Num > 0,
+  Next is div(Num, 10),
+  digits_helper(Next, RestDigits),
+  Digits is RestDigits + 1.
+
+concat_num(Num1, Num2, Result) :-
+  digits(Num2, Digits), !,
+  Num1Shifted is Num1 * (10 ^ Digits),
+  Result is Num1Shifted + Num2.
 
 main :-
   file_to_string("input.txt", FileContents),
   split_string(FileContents, "\n", "", Lines),
   process_lines(Lines, Data),
   count_valid_calibrations_sum(Data, Valid),
-  write(Valid).
+  write(Valid),
+  write("\n"),
+  count_valid_calibrations_sum_part2(Data, Valid2),
+  write(Valid2),
+  write("\n").
