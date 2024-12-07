@@ -64,14 +64,9 @@ is_valid_helper_part2([Num|Nums], SumSoFar, SumAchieved) :-
 is_valid_helper_part2([], Sum, Sum).
 
 digits(0, 1).
-digits(Num, Digits) :- \+ Num is 0, digits_helper(Num, Digits).
-
-digits_helper(0, 0).
-digits_helper(Num, Digits) :-
-  Num > 0,
-  Next is div(Num, 10),
-  digits_helper(Next, RestDigits),
-  Digits is RestDigits + 1.
+digits(Num, Digits) :-
+  \+ Num is 0,
+  Digits is integer(log10(Num)) + 1.
 
 concat_num(Num1, Num2, Result) :-
   digits(Num2, Digits), !,
