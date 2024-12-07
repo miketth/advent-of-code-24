@@ -26,10 +26,12 @@ is_valid(calibration(Sum, Nums)) :-
 
 is_valid_helper([Num|Nums], SumSoFar, SumAchieved) :-
   ThisRound is SumSoFar * Num,
+  \+ ThisRound > SumAchieved, % optimization for quitting early
   is_valid_helper(Nums, ThisRound, SumAchieved).
 
 is_valid_helper([Num|Nums], SumSoFar, SumAchieved) :-
   ThisRound is SumSoFar + Num,
+  \+ ThisRound > SumAchieved, % optimization for quitting early
   is_valid_helper(Nums, ThisRound, SumAchieved).
 
 is_valid_helper([], Sum, Sum).
@@ -46,14 +48,17 @@ is_valid_part2(calibration(Sum, Nums)) :-
 
 is_valid_helper_part2([Num|Nums], SumSoFar, SumAchieved) :-
   ThisRound is SumSoFar * Num,
+  \+ ThisRound > SumAchieved, % optimization for quitting early
   is_valid_helper_part2(Nums, ThisRound, SumAchieved).
 
 is_valid_helper_part2([Num|Nums], SumSoFar, SumAchieved) :-
   ThisRound is SumSoFar + Num,
+  \+ ThisRound > SumAchieved, % optimization for quitting early
   is_valid_helper_part2(Nums, ThisRound, SumAchieved).
 
 is_valid_helper_part2([Num|Nums], SumSoFar, SumAchieved) :-
   concat_num(SumSoFar, Num, ThisRound),
+  \+ ThisRound > SumAchieved, % optimization for quitting early
   is_valid_helper_part2(Nums, ThisRound, SumAchieved).
 
 is_valid_helper_part2([], Sum, Sum).
