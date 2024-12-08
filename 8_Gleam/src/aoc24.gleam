@@ -1,3 +1,4 @@
+import gleam/int
 import gleam/result
 import gleam/dict
 import gleam/list
@@ -13,9 +14,13 @@ type Coord = #(Int, Int)
 pub fn main() {
   let #(data, bounds) = load_data()
 
-  let antinode_count = find_all_antinodes(data, bounds) |> list.length
+  let antinode_count = find_all_antinodes(data, bounds, find_antinodes) |> list.length
 
   io.debug(antinode_count)
+
+  let antinode_count_part2 = find_all_antinodes(data, bounds, find_antinodes_part2) |> list.length
+
+  io.debug(antinode_count_part2)
 }
 
 fn load_data() {
@@ -76,10 +81,62 @@ fn find_antinodes(coords: List(Coord), bounds: Coord) {
   |> list.unique
 }
 
-fn find_all_antinodes(data: dict.Dict(String, List(Coord)), bounds: Coord) {
+fn find_antinodes_part2(coords: List(Coord), bounds: Coord) {
+  list.combination_pairs(coords)
+  |> list.map(fn (item) {
+    let #(tower1, tower2) = item
+    find_grid_positions_inline(tower1, tower2, bounds)
+  })
+  |> list.flatten
+  |> list.unique
+}
+
+fn find_grid_positions_inline(tower1: Coord, tower2: Coord, bounds: Coord) {
+  let #(x1, y1) = tower1
+  let #(x2, y2) = tower2
+  let x_diff = x1-x2
+  let y_diff = y1-y2
+
+  let gcd = greatest_common_divisor(int.absolute_value(x_diff), int.absolute_value(y_diff))
+  let step_forward = #(x_diff / gcd, y_diff / gcd)
+  let step_backward = #(-x_diff / gcd, -y_diff / gcd)
+
+  let forward = step_through(tower1, step_forward, bounds)
+  let backward = step_through(tower1, step_backward, bounds)
+
+  list.append(forward, backward)
+}
+
+fn step_through(from: Coord, step: Coord, bounds: Coord) {
+  step_through_helper(from, step, bounds, [])
+}
+
+fn step_through_helper(from: Coord, step: Coord, bounds: Coord, acc: List(Coord)) {
+  let #(prev_x, prev_y) = from
+  let #(diff_x, diff_y) = step
+  let #(bound_x, bound_y) = bounds
+
+  let acc = [from, ..acc]
+
+  let next = #(prev_x + diff_x, prev_y + diff_y)
+  case next {
+    #(x, y) if x < 0 || y < 0 -> acc
+    #(x, y) if x >= bound_x || y >= bound_y -> acc
+    _ -> step_through_helper(next, step, bounds, acc)
+  }
+}
+
+fn greatest_common_divisor(a, b) {
+  case b {
+    0 -> a
+    _ -> greatest_common_divisor(b, a % b)
+  }
+}
+
+fn find_all_antinodes(data: dict.Dict(String, List(Coord)), bounds: Coord, finder: fn(List(Coord), Coord) -> List(Coord)) {
   data
   |> dict.map_values(fn (_key, item) {
-    find_antinodes(item, bounds)
+    finder(item, bounds)
   })
   |> dict.fold([], fn (acc, _key, val) {
     list.append(acc, val)
