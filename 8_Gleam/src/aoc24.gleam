@@ -16,11 +16,11 @@ pub fn main() {
 
   let antinode_count = find_all_antinodes(data, bounds, find_antinodes) |> list.length
 
-  io.debug(antinode_count)
+  io.println(antinode_count |> int.to_string())
 
   let antinode_count_part2 = find_all_antinodes(data, bounds, find_antinodes_part2) |> list.length
 
-  io.debug(antinode_count_part2)
+  io.println(antinode_count_part2 |> int.to_string())
 }
 
 fn load_data() {
