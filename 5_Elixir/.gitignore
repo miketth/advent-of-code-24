@@ -24,7 +24,3 @@ aoc24-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
-
-input*.txt
-.idea
-*.iml
