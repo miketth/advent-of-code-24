@@ -14,6 +14,19 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter")
 }
 
-tasks.test {
-    useJUnitPlatform()
+tasks.withType<Jar> {
+    manifest {
+        attributes["Main-Class"] = "industries.disappointment.Main"
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from(sourceSets.main.get().output)
+    dependsOn(configurations.runtimeClasspath)
+    from({
+        configurations.runtimeClasspath.get().filter { it.name.endsWith("jar") }.map { zipTree(it) }
+    })
+}
+
+tasks.register<JavaExec>("run") {
+    mainClass = "industries.disappointment.Main"
+    classpath = sourceSets.main.get().runtimeClasspath
 }
