@@ -2,47 +2,63 @@
   tasks:
     - name: read file
       ansible.builtin.set_fact:
+#        data: '{{ lookup("ansible.builtin.file", "input_sample.txt") | list | map("int") }}'
         data: '{{ lookup("ansible.builtin.file", "input.txt") | list | map("int") }}'
 
     - name: default variables
       ansible.builtin.set_fact:
-        parsed_data:
-          disk: []
-          is_file: True
-          idx: 0
+        disk: []
 
     - name: assemble disk layout
       ansible.builtin.set_fact:
-        parsed_data: |
-          {%- if parsed_data.is_file -%}
-          {{ { "disk": parsed_data.disk + [(parsed_data.idx)]*item, "is_file": False, "idx": parsed_data.idx + 1 } }}
-          {%- else -%}
-          {{ { "disk": parsed_data.disk + ["."]*item, "is_file": True, "idx": parsed_data.idx } }}
-          {%- endif -%}
-      loop: "{{ data }}"
-
-    - name: set var
-      ansible.builtin.set_fact:
-        disk: "{{ parsed_data.disk }}"
+        disk: |
+          {%- for item in data -%}
+            {%- set idx = loop.index - 1 -%}
+            {%- if idx % 2 == 0 -%}
+              {%- set _ = disk.append([(idx / 2) | int]*item) -%}
+            {%- else -%}
+              {%- set _ = disk.append(["."]*item) -%}
+            {%- endif -%}
+          {%- endfor -%}
+          {{ disk | flatten }}
 
     - name: compact disk
-      ansible.builtin.include_tasks: compact_disk.yml
-      loop: "{{ disk }}"
-      loop_control:
-        index_var: idx
-        loop_var: current_block
-
-    - name: set var
       ansible.builtin.set_fact:
-        sum: { sum: 0 }
+        disk: |
+          {%- set non_empty = [] -%}
+          {%- for block in disk -%}
+            {%- if block != "." -%}
+              {%- set _ = non_empty.append({ "block": block, "idx": loop.index-1 }) -%}
+            {%- endif -%}
+          {%- endfor -%}
+          
+          {%- for current_block in disk -%}
+            {%- set idx = loop.index - 1 -%}
+            {%- set non_empty_count = non_empty | length -%}
+          
+            {%- if current_block == "." and non_empty_count > 0 -%}
+              {%- set last_non_empty = non_empty[non_empty_count-1] -%}
+              {%- if last_non_empty.idx > idx -%}
+                {%- set _ = non_empty.__delitem__(non_empty_count-1) -%}
+                {%- set _ = disk.__setitem__(idx, last_non_empty.block) -%}
+                {%- set _ = disk.__setitem__(last_non_empty.idx, ".") -%}
+              {%- endif -%}
+            {%- endif -%}
+          
+          {%- endfor -%}
+          {{ disk }}
 
     - name: update checksum
       ansible.builtin.set_fact:
-        sum: '{{ { "sum": sum.sum + item * idx } }}'
-      loop: "{{ disk }}"
-      when: item != "."
-      loop_control:
-        index_var: idx
+        sum: |
+          {%- set sum = { "sum": 0 } -%}
+          {%- for item in disk -%}
+            {%- if item != "." -%}
+              {%- set idx = loop.index - 1 -%}
+              {%- set _ = sum.update({ "sum": sum.sum + item * idx }) -%}
+            {%- endif -%}
+          {%- endfor -%}
+          {{ sum }}
 
     - debug:
         var: sum.sum
