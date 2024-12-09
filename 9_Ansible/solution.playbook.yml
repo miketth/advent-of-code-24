@@ -1,0 +1,48 @@
+- hosts: localhost
+  tasks:
+    - name: read file
+      ansible.builtin.set_fact:
+        data: '{{ lookup("ansible.builtin.file", "input.txt") | list | map("int") }}'
+
+    - name: default variables
+      ansible.builtin.set_fact:
+        parsed_data:
+          disk: []
+          is_file: True
+          idx: 0
+
+    - name: assemble disk layout
+      ansible.builtin.set_fact:
+        parsed_data: |
+          {%- if parsed_data.is_file -%}
+          {{ { "disk": parsed_data.disk + [(parsed_data.idx)]*item, "is_file": False, "idx": parsed_data.idx + 1 } }}
+          {%- else -%}
+          {{ { "disk": parsed_data.disk + ["."]*item, "is_file": True, "idx": parsed_data.idx } }}
+          {%- endif -%}
+      loop: "{{ data }}"
+
+    - name: set var
+      ansible.builtin.set_fact:
+        disk: "{{ parsed_data.disk }}"
+
+    - name: compact disk
+      ansible.builtin.include_tasks: compact_disk.yml
+      loop: "{{ disk }}"
+      loop_control:
+        index_var: idx
+        loop_var: current_block
+
+    - name: set var
+      ansible.builtin.set_fact:
+        sum: { sum: 0 }
+
+    - name: update checksum
+      ansible.builtin.set_fact:
+        sum: '{{ { "sum": sum.sum + item * idx } }}'
+      loop: "{{ disk }}"
+      when: item != "."
+      loop_control:
+        index_var: idx
+
+    - debug:
+        var: sum.sum

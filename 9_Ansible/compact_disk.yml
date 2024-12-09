@@ -1,0 +1,20 @@
+---
+- name: get non-empty blocks
+  ansible.builtin.set_fact:
+    non_empty: |
+      {%- set non_empty = [] -%}
+      {%- for block in disk[idx:] -%}
+        {%- if block != "." -%}
+          {{- non_empty.append({ "block": block, "idx": loop.index-1+idx }) -}}
+        {%- endif -%}
+      {%- endfor -%}
+      {{ non_empty }}
+
+- name: fill empty slot
+  ansible.builtin.set_fact:
+    disk: |
+      {%- set last_non_empty = non_empty | last -%}
+      {{- disk.__setitem__(idx, last_non_empty.block) -}}
+      {{- disk.__setitem__(last_non_empty.idx, ".") -}}
+      {{ disk }}
+  when: current_block == "." and non_empty != []
