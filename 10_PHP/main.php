@@ -18,6 +18,7 @@ function main(): void
     echo $sum_part_1;
     echo "\n";
     echo $sum_part_2;
+    echo "\n";
 }
 
 function find_reachable_peaks($map, $coord, $start_from = 0): array
