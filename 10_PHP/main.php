@@ -8,12 +8,16 @@ function main(): void
     $data = read_input($filePath);
     $startPoints = find_0s($data);
 
-    $sum = 0;
+    $sum_part_1 = 0;
+    $sum_part_2 = 0;
     foreach ($startPoints as $coord) {
         $reachable_peaks = find_reachable_peaks($data, $coord);
-        $sum += count($reachable_peaks);
+        $sum_part_1 += count(array_unique($reachable_peaks, SORT_REGULAR));
+        $sum_part_2 += count($reachable_peaks);
     }
-    echo $sum;
+    echo $sum_part_1;
+    echo "\n";
+    echo $sum_part_2;
 }
 
 function find_reachable_peaks($map, $coord, $startFrom = 0): array
@@ -33,7 +37,7 @@ function find_reachable_peaks($map, $coord, $startFrom = 0): array
         $reachable = array_merge($reachable, $thisReachable);
     }
 
-    return array_unique($reachable, SORT_REGULAR);
+    return $reachable;
 }
 
 function neighbours($map, $coord): array
