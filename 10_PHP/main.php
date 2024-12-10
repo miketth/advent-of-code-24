@@ -2,15 +2,15 @@
 
 function main(): void
 {
-//    $filePath = "input_sample.txt";
-    $filePath = "input.txt";
+//    $file_path = "input_sample.txt";
+    $file_path = "input.txt";
 
-    $data = read_input($filePath);
-    $startPoints = find_0s($data);
+    $data = read_input($file_path);
+    $start_points = find_0s($data);
 
     $sum_part_1 = 0;
     $sum_part_2 = 0;
-    foreach ($startPoints as $coord) {
+    foreach ($start_points as $coord) {
         $reachable_peaks = find_reachable_peaks($data, $coord);
         $sum_part_1 += count(array_unique($reachable_peaks, SORT_REGULAR));
         $sum_part_2 += count($reachable_peaks);
@@ -20,9 +20,9 @@ function main(): void
     echo $sum_part_2;
 }
 
-function find_reachable_peaks($map, $coord, $startFrom = 0): array
+function find_reachable_peaks($map, $coord, $start_from = 0): array
 {
-    if ($startFrom === 9) {
+    if ($start_from === 9) {
         return [$coord];
     }
 
@@ -30,11 +30,11 @@ function find_reachable_peaks($map, $coord, $startFrom = 0): array
     foreach (neighbours($map, $coord) as $neighbour) {
         [$x, $y] = $neighbour;
         $val = $map[$y][$x];
-        if ($val !== $startFrom + 1) {
+        if ($val !== $start_from + 1) {
             continue;
         }
-        $thisReachable = find_reachable_peaks($map, $neighbour, $startFrom + 1);
-        $reachable = array_merge($reachable, $thisReachable);
+        $this_reachable = find_reachable_peaks($map, $neighbour, $start_from + 1);
+        $reachable = array_merge($reachable, $this_reachable);
     }
 
     return $reachable;
@@ -80,9 +80,9 @@ function find_0s($data): array
     return $ret;
 }
 
-function read_input($filePath): array
+function read_input($file_path): array
 {
-    $lines = file($filePath);
+    $lines = file($file_path);
     $lines = array_map(function($line) {
         return trim($line);
     }, $lines);
