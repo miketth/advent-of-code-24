@@ -1,19 +1,46 @@
+use std::collections::HashMap;
 use std::fs::File;
 use std::io;
 use std::io::{BufRead, BufReader};
 
 fn main() -> io::Result<()> {
-    let mut nums = read_file("input.txt")?;
-
-    for n in 0..25 {
-        nums = nums.iter()
-            .map(|x| process(*x))
-            .flatten().collect();
-    }
+    let nums = read_file("input.txt")?;
     
-    println!("{}", nums.len());
+    let sum: u64 = nums.iter()
+        .map(|x| chain_len(*x, 0, 25))
+        .sum();
+    
+    println!("{}", sum);
 
     Ok(())
+}
+
+fn chain_len(num: u64, depth: u64, max_depth: u64) -> u64 {
+    if depth > max_depth {
+        panic!("oof")
+    }
+    
+    if depth == max_depth {
+        return 1;
+    }
+    
+    
+    if num == 0 {
+        return chain_len(1, depth + 1, max_depth);
+    }
+    
+    let digs = digits(num);
+    if digs % 2 == 0 {
+        let exponent: u64 = 10_u64.pow(digs / 2);
+        let left_half = num / exponent;
+        let right_half = num % exponent;
+        
+        let left_len = chain_len(left_half, depth + 1, max_depth);
+        let right_len = chain_len(right_half, depth + 1, max_depth);
+        return left_len + right_len;
+    }
+    
+    return chain_len(num*2024, depth + 1, max_depth);
 }
 
 fn process(num: u64) -> Vec<u64> {
