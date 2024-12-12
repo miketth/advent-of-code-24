@@ -1,9 +1,8 @@
-use std::collections::HashMap;
 use std::fs::File;
-use std::io;
+use std::{io, num};
 use std::io::{BufRead, BufReader};
 
-fn main() -> io::Result<()> {
+fn main() -> Result<(), FileParseError> {
     let nums = read_file("input.txt")?;
     
     let sum: u64 = nums.iter()
@@ -66,14 +65,26 @@ fn digits(num: u64) -> u32 {
 
     (num as f64).log10().floor() as u32 + 1
 }
-fn read_file(path: &str) -> io::Result<Vec<u64>> {
-    let file = File::open(path)?;
+
+#[derive(Debug)]
+enum FileParseError {
+    IOError(io::Error),
+    ParseError(num::ParseIntError),
+} 
+
+fn read_file(path: &str) -> Result<Vec<u64>, FileParseError> {
+    let file = File::open(path)
+        .map_err(|err| FileParseError::IOError(err))?;
+    
     let mut reader = BufReader::new(file);
     let mut line = String::new();
-    reader.read_line(&mut line)?;
+    reader.read_line(&mut line)
+        .map_err(|err| FileParseError::IOError(err))?;
+    
     let nums = line
         .split_whitespace()
-        .map(|item| item.parse::<u64>().unwrap())
-        .collect::<Vec<_>>();
+        .map(|item| item.parse::<u64>())
+        .collect::<Result<_, _>>()
+        .map_err(|err| FileParseError::ParseError(err))?;
     Ok(nums)
 }
