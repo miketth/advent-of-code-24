@@ -1,12 +1,18 @@
 use std::fs::File;
 use std::{io, num};
+use std::collections::HashMap;
 use std::io::{BufRead, BufReader};
+
+type SolveMap = HashMap<u64, u64>;
+type Memo = HashMap<u64, SolveMap>;
+
 
 fn main() -> Result<(), FileParseError> {
     let nums = read_file("input.txt")?;
+    let mut memo = HashMap::new();
     
     let sum: u64 = nums.iter()
-        .map(|x| chain_len(*x, 0, 25))
+        .map(|x| chain_len(*x, 0, 75, &mut memo))
         .sum();
     
     println!("{}", sum);
@@ -14,7 +20,7 @@ fn main() -> Result<(), FileParseError> {
     Ok(())
 }
 
-fn chain_len(num: u64, depth: u64, max_depth: u64) -> u64 {
+fn chain_len(num: u64, depth: u64, max_depth: u64, memo: &mut Memo) -> u64 {
     if depth > max_depth {
         panic!("oof")
     }
@@ -22,10 +28,25 @@ fn chain_len(num: u64, depth: u64, max_depth: u64) -> u64 {
     if depth == max_depth {
         return 1;
     }
+
+    let depth_to_go = max_depth - depth;
     
+    match memo.get(&num) {
+        None => {}
+        Some(depth_map) => {
+            match depth_map.get(&depth_to_go) {
+                None => {}
+                Some(solution) => {
+                    return *solution;
+                }
+            }
+        }
+    }
     
     if num == 0 {
-        return chain_len(1, depth + 1, max_depth);
+        let solution = chain_len(1, depth + 1, max_depth, memo);
+        update_memo(num, depth_to_go, memo, solution);
+        return solution;
     }
     
     let digs = digits(num);
@@ -34,12 +55,22 @@ fn chain_len(num: u64, depth: u64, max_depth: u64) -> u64 {
         let left_half = num / exponent;
         let right_half = num % exponent;
         
-        let left_len = chain_len(left_half, depth + 1, max_depth);
-        let right_len = chain_len(right_half, depth + 1, max_depth);
-        return left_len + right_len;
+        let left_len = chain_len(left_half, depth + 1, max_depth, memo);
+        let right_len = chain_len(right_half, depth + 1, max_depth, memo);
+        
+        let soution = left_len + right_len;
+        update_memo(num, depth_to_go, memo, soution);
+        return soution;
     }
     
-    return chain_len(num*2024, depth + 1, max_depth);
+    let solution = chain_len(num*2024, depth + 1, max_depth, memo);
+    update_memo(num, depth_to_go, memo, solution);
+    return solution;
+}
+
+fn update_memo(num: u64, depth_to_go: u64, memo: &mut Memo, solution: u64) {
+    let val = memo.entry(num).or_insert(SolveMap::new());
+    val.insert(depth_to_go, solution);
 }
 
 fn process(num: u64) -> Vec<u64> {
