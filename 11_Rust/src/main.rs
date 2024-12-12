@@ -1,21 +1,27 @@
 use std::fs::File;
-use std::{io, num};
 use std::collections::HashMap;
+use std::error::Error;
 use std::io::{BufRead, BufReader};
 
 type SolveMap = HashMap<u64, u64>;
 type Memo = HashMap<u64, SolveMap>;
 
 
-fn main() -> Result<(), FileParseError> {
+fn main() -> Result<(), Box<dyn Error>> {
     let nums = read_file("input.txt")?;
     let mut memo = HashMap::new();
     
-    let sum: u64 = nums.iter()
-        .map(|x| chain_len(*x, 0, 75, &mut memo))
+    let sum_1: u64 = nums.iter()
+        .map(|x| chain_len(*x, 0, 25, &mut memo))
         .sum();
     
-    println!("{}", sum);
+    println!("{}", sum_1);
+
+    let sum_2: u64 = nums.iter()
+        .map(|x| chain_len(*x, 0, 75, &mut memo))
+        .sum();
+
+    println!("{}", sum_2);
 
     Ok(())
 }
@@ -73,22 +79,6 @@ fn update_memo(num: u64, depth_to_go: u64, memo: &mut Memo, solution: u64) {
     val.insert(depth_to_go, solution);
 }
 
-fn process(num: u64) -> Vec<u64> {
-    if num == 0 {
-        return vec![1]
-    }
-
-    let digs = digits(num);
-    if digs % 2 == 0 {
-        let exponent: u64 = 10_u64.pow(digs / 2);
-        let left_half = num / exponent;
-        let right_half = num % exponent;
-        return vec![left_half, right_half];
-    }
-
-    vec![num * 2024]
-}
-
 fn digits(num: u64) -> u32 {
     if num == 0 {
         return 1
@@ -97,25 +87,16 @@ fn digits(num: u64) -> u32 {
     (num as f64).log10().floor() as u32 + 1
 }
 
-#[derive(Debug)]
-enum FileParseError {
-    IOError(io::Error),
-    ParseError(num::ParseIntError),
-} 
-
-fn read_file(path: &str) -> Result<Vec<u64>, FileParseError> {
-    let file = File::open(path)
-        .map_err(|err| FileParseError::IOError(err))?;
+fn read_file(path: &str) -> Result<Vec<u64>, Box<dyn Error>> {
+    let file = File::open(path)?;
     
     let mut reader = BufReader::new(file);
     let mut line = String::new();
-    reader.read_line(&mut line)
-        .map_err(|err| FileParseError::IOError(err))?;
+    reader.read_line(&mut line)?;
     
     let nums = line
         .split_whitespace()
         .map(|item| item.parse::<u64>())
-        .collect::<Result<_, _>>()
-        .map_err(|err| FileParseError::ParseError(err))?;
+        .collect::<Result<_, _>>()?;
     Ok(nums)
 }
