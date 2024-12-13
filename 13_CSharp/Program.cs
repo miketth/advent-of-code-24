@@ -10,29 +10,47 @@ void Main()
     var games = ParseFile(filePath);
     var solution = games.Select(game => Solve(game)).Sum();
     Console.WriteLine(solution);
+
+    var offset = new Coord
+    {
+        X = 10000000000000,
+        Y = 10000000000000,
+    };
+    
+    var solutionPart2 = games
+        .Select(game => new Game
+        {
+            buttonA = game.buttonA,
+            buttonB = game.buttonB,
+            prize = game.prize + offset,
+        })
+        .Select(game => Solve(game))
+        .Sum();
+    Console.WriteLine(solutionPart2);
 }
 
-int Solve(Game game)
+long Solve(Game game)
 {
-    var solutions = new List<int>();
-    for (int a = 0; a < 100; a++)
+    var prize = game.prize.ToDoubleCoord();
+    var buttonA = game.buttonA.ToDoubleCoord();
+    var buttonB = game.buttonB.ToDoubleCoord();
+    
+    var top = prize.Y - (buttonB.Y*prize.X)/buttonB.X;
+    var bottom = buttonA.Y - (buttonB.Y * buttonA.X) / buttonB.X;
+    var a = top / bottom;
+
+    var b = (prize.X - buttonA.X * a) / buttonB.X;
+
+    var aInt = (long) Math.Round(a);
+    var bInt = (long) Math.Round(b);
+    
+    var pos = game.buttonA * aInt + game.buttonB * bInt;
+    if (pos == game.prize)
     {
-        for (int b = 0; b < 100; b++)
-        {
-            var endPos = game.buttonA * a + game.buttonB * b;
-            if (endPos == game.prize)
-            {
-                solutions.Add(a*3 + b);
-            }
-        }
+        return aInt*3+bInt;
     }
 
-    if (solutions.Count == 0)
-    {
-        return 0;
-    }
-    
-    return solutions.Min();
+    return 0;
 }
 
 IEnumerable<Game> ParseFile(string path)
