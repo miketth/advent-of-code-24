@@ -1,11 +1,11 @@
 using Gee;
 
 const string filePath = "input.txt";
-//const string filePath = "input_sample.txt";
+// const string filePath = "input_sample.txt";
 int mapX = 101;
-//int64 mapX = 11;
+// int64 mapX = 11;
 int mapY = 103;
-//int64 mapY = 7;
+// int64 mapY = 7;
 
 
 int main(string[] args) {
@@ -38,10 +38,52 @@ int main(string[] args) {
         }
     }
 
-    stdout.printf("topLeft=%d, topRight=%d, bottomLeft=%d, bottomRight=%d\n", topLeft, topRight, bottomLeft, bottomRight);
+    // stdout.printf("topLeft=%d, topRight=%d, bottomLeft=%d, bottomRight=%d\n", topLeft, topRight, bottomLeft, bottomRight);
     stdout.printf("%d\n", topLeft*topRight*bottomLeft*bottomRight);
 
+    int64 minVariance = int64.MAX;
+    var minVariancePos = 0;
+    for(int i = 0; i < 10000; i++) {
+        var positionsX = new ArrayList<int64?>();
+        var positionsY = new ArrayList<int64?>();
+
+        foreach (var robot in robots) {
+            var pos = robot.advance(i, mapX, mapY);
+            positionsX.add(pos.x);
+            positionsY.add(pos.y);
+        }
+
+        int64 varianceX = variance(positionsX);
+        int64 varianceY = variance(positionsY);
+
+        // stdout.printf("%d => [%"+int64.FORMAT+",%"+int64.FORMAT+"]\n", i, varianceX, varianceY);
+
+        var varianceSum = varianceX + varianceY;
+        if (varianceSum < minVariance) {
+            minVariance = varianceSum;
+            minVariancePos = i;
+        }
+    }
+    stdout.printf("%d\n", minVariancePos);
+
     return 0;
+}
+
+int64 variance(ArrayList<int64?> nums) {
+    int64 avg = 0;
+    foreach(var num in nums) {
+        avg += num;
+    }
+    avg /= nums.size;
+
+    int64 _variance = 0;
+    foreach(var num in nums) {
+        int64 diff = avg-num;
+        _variance += diff * diff;
+    }
+    _variance /= nums.size;
+
+    return _variance;
 }
 
 Coord to_coord(string input) {
@@ -95,7 +137,7 @@ ArrayList<Robot> read_file(string inputFile) {
 
     string line;
     var robots = new ArrayList<Robot>();
-    while ((line = dis.read_line (null)) != null) {
+    while ((line = dis.read_line(null)) != null) {
         var parts = line.split(" ");
         var point = to_coord(parts[0]);
         var velocity = to_coord(parts[1]);
