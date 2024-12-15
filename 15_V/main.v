@@ -3,6 +3,7 @@ module main
 import os
 import term
 import time
+import strings
 
 // const input_file = 'input_sample.txt'
 // const input_file = 'input_sample_larger.txt'
@@ -25,9 +26,6 @@ fn do_instructions(warehouse Warehouse, debug bool) Warehouse {
 	mut fields := warehouse.fields.clone()
 	mut robot_pos := warehouse.robot_pos
 	for i, instruction in warehouse.instructions {
-		if debug {
-			println('${i} => ${instruction}')
-		}
 		next := robot_pos.next(instruction)
 		moves, success := move(mut fields, next, instruction, false)
 		if success {
@@ -39,7 +37,7 @@ fn do_instructions(warehouse Warehouse, debug bool) Warehouse {
 			robot_pos = next
 		}
 		if debug {
-			print_map(Warehouse{
+			print_map('${i} => ${instruction}', Warehouse{
 				robot_pos:    robot_pos
 				fields:       fields
 				instructions: []
@@ -235,7 +233,10 @@ fn read_file(name string) !(Warehouse, Warehouse) {
 	return warehouse, warehouse_wide
 }
 
-fn print_map(warehouse Warehouse) {
+fn print_map(header string, warehouse Warehouse) {
+	mut builder := strings.new_builder(warehouse.fields.len * warehouse.fields[0].len)
+	builder.write_string(header)
+	builder.write_rune(`\n`)
 	for y in 0 .. warehouse.fields.len {
 		line := warehouse.fields[y].clone()
 		for x in 0 .. line.len {
@@ -246,9 +247,9 @@ fn print_map(warehouse Warehouse) {
 				y: y
 			}
 			if this_coord == warehouse.robot_pos {
-				print(term.bright_green('@'))
+				builder.write_string(term.bright_green('@'))
 			} else {
-				print(match elem {
+				builder.write_string(match elem {
 					.box { term.bright_red('O') }
 					.wall { term.bright_white('#') }
 					.nothing { '.' }
@@ -257,6 +258,7 @@ fn print_map(warehouse Warehouse) {
 				})
 			}
 		}
-		println('')
+		builder.write_rune(`\n`)
 	}
+	println(builder.str())
 }
