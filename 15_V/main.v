@@ -1,34 +1,50 @@
 module main
 
 import os
+import term
+import time
 
 // const input_file = 'input_sample.txt'
 // const input_file = 'input_sample_larger.txt'
+// const input_file = 'input_wide_example.txt'
+// const input_file = 'input_test.txt'
 const input_file = 'input.txt'
 
 fn main() {
-	warehouse := read_file(input_file)!
-	end_warehouse := do_instructions(warehouse)
-	print_map(end_warehouse)
-	mut result := 0
-	for y, line in end_warehouse.fields {
-		for x, item in line {
-			if item == .box {
-				result += (100 * y) + x
-			}
-		}
-	}
+	warehouse, warehouse_wide := read_file(input_file)!
+	end_warehouse := do_instructions(warehouse, false)
+	result := calculate_gps_sum(end_warehouse)
 	println('${result}')
+
+	end_warehouse_wide := do_instructions(warehouse_wide, false)
+	result_wide := calculate_gps_sum(end_warehouse_wide)
+	println('${result_wide}')
 }
 
-fn do_instructions(warehouse Warehouse) Warehouse {
+fn do_instructions(warehouse Warehouse, debug bool) Warehouse {
 	mut fields := warehouse.fields.clone()
 	mut robot_pos := warehouse.robot_pos
-	for instruction in warehouse.instructions {
+	for i, instruction in warehouse.instructions {
+		if debug {
+			println('${i} => ${instruction}')
+		}
 		next := robot_pos.next(instruction)
-		success := move(mut fields, next, instruction)
+		moves, success := move(mut fields, next, instruction, false)
 		if success {
+			for this_move in moves {
+				item := fields[this_move.from.y][this_move.from.x]
+				fields[this_move.to.y][this_move.to.x] = item
+				fields[this_move.from.y][this_move.from.x] = .nothing
+			}
 			robot_pos = next
+		}
+		if debug {
+			print_map(Warehouse{
+				robot_pos:    robot_pos
+				fields:       fields
+				instructions: []
+			})
+			time.sleep(time.millisecond * 16)
 		}
 	}
 
@@ -39,25 +55,70 @@ fn do_instructions(warehouse Warehouse) Warehouse {
 	}
 }
 
-fn move(mut fields Fields, coord Coord, direction Instruction) bool {
+fn calculate_gps_sum(warehouse Warehouse) int {
+	mut result := 0
+	for y, line in warehouse.fields {
+		for x, item in line {
+			if item in [.box, .box_left] {
+				result += (100 * y) + x
+			}
+		}
+	}
+
+	return result
+}
+
+struct Move {
+	from Coord
+	to   Coord
+}
+
+fn move(mut fields Fields, coord Coord, direction Instruction, coming_from_pair bool) ([]Move, bool) {
 	item := fields[coord.y][coord.x]
 	if item == .nothing {
-		return true
+		return []Move{}, true
 	}
 	if item == .wall {
-		return false
+		return []Move{}, false
 	}
 
 	next := coord.next(direction)
 
-	success := move(mut fields, next, direction)
+	mut moves := []Move{}
+	moves_prev, success := move(mut fields, next, direction, false)
 	if !success {
-		return false
+		return []Move{}, false
+	}
+	moves << moves_prev.filter(!moves.contains(it))
+
+	if direction in [.up, .down] {
+		if item == .box_right && !coming_from_pair {
+			moves_left, success_left := move(mut fields, coord.next(.left), direction,
+				true)
+			if !success_left {
+				return []Move{}, false
+			}
+			moves << moves_left.filter(!moves.contains(it))
+		}
+		if item == .box_left && !coming_from_pair {
+			moves_right, success_right := move(mut fields, coord.next(.right), direction,
+				true)
+			if !success_right {
+				return []Move{}, false
+			}
+			moves << moves_right.filter(!moves.contains(it))
+		}
 	}
 
-	fields[next.y][next.x] = item
-	fields[coord.y][coord.x] = .nothing
-	return true
+	this_move := Move{
+		from: coord
+		to:   next
+	}
+	if !moves.contains(this_move) {
+		moves << this_move
+	}
+
+	return moves, true
 }
 
 struct Coord {
@@ -87,6 +148,8 @@ enum MapElement {
 	box
 	wall
 	nothing
+	box_left
+	box_right
 }
 
 enum Instruction {
@@ -104,9 +167,11 @@ struct Warehouse {
 	instructions []Instruction
 }
 
-fn read_file(name string) !Warehouse {
+fn read_file(name string) !(Warehouse, Warehouse) {
 	mut robot_pos := Coord{}
+	mut robot_pos_wide := Coord{}
 	mut fields := map[int]map[int]MapElement{}
+	mut fields_wide := map[int]map[int]MapElement{}
 
 	data := os.read_file(name)!
 	data_parts := data.split('\n\n')
@@ -114,30 +179,38 @@ fn read_file(name string) !Warehouse {
 
 	for y, line in warehouse_str.split('\n') {
 		mut this_line := map[int]MapElement{}
+		mut this_line_wide := map[int]MapElement{}
 		for x, field in line {
-			this_line[x] = match field {
+			elem, elems_wide := match field {
 				`#` {
-					MapElement.wall
+					MapElement.wall, [MapElement.wall].repeat(2)
 				}
 				`O` {
-					MapElement.box
+					MapElement.box, [MapElement.box_left, MapElement.box_right]
 				}
 				`.` {
-					MapElement.nothing
+					MapElement.nothing, [MapElement.nothing].repeat(2)
 				}
 				`@` {
 					robot_pos = Coord{
 						x: x
 						y: y
 					}
-					MapElement.nothing
+					robot_pos_wide = Coord{
+						x: x * 2
+						y: y
+					}
+					MapElement.nothing, [MapElement.nothing].repeat(2)
 				}
 				else {
 					return error('unknown cell: ${field.str()}')
 				}
 			}
+			this_line[x] = elem
+			this_line_wide[x * 2], this_line_wide[x * 2 + 1] = elems_wide[0], elems_wide[1]
 		}
 		fields[y] = this_line.move()
+		fields_wide[y] = this_line_wide.move()
 	}
 
 	instructions := instructions_str.runes().filter(it != `\n`).map(match it {
@@ -148,11 +221,18 @@ fn read_file(name string) !Warehouse {
 		else { return error('unknown instruction: ${it.str()}') }
 	})
 
-	return Warehouse{
+	warehouse := Warehouse{
 		robot_pos:    robot_pos
 		fields:       fields
 		instructions: instructions
 	}
+	warehouse_wide := Warehouse{
+		robot_pos:    robot_pos_wide
+		fields:       fields_wide
+		instructions: instructions
+	}
+
+	return warehouse, warehouse_wide
 }
 
 fn print_map(warehouse Warehouse) {
@@ -166,12 +246,14 @@ fn print_map(warehouse Warehouse) {
 				y: y
 			}
 			if this_coord == warehouse.robot_pos {
-				print('@')
+				print(term.bright_green('@'))
 			} else {
 				print(match elem {
-					.box { 'O' }
-					.wall { '#' }
+					.box { term.bright_red('O') }
+					.wall { term.bright_white('#') }
 					.nothing { '.' }
+					.box_left { term.bright_red('[') }
+					.box_right { term.bright_red(']') }
 				})
 			}
 		}
