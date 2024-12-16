@@ -10,8 +10,12 @@ const fileName = "input.txt";
 void main() async {
   var maze = await readFile(fileName);
 
-  var path = findBestPath(maze.map, maze.start, maze.end, Direction.Right);
-  print(path.$2);
+  var bestPaths = findBestPath(maze.map, maze.start, maze.end, Direction.Right);
+  print(bestPaths.$2);
+
+  var tilesOnBestPaths = <Coord>{};
+  bestPaths.$1.forEach((path) => tilesOnBestPaths.addAll(path));
+  print(tilesOnBestPaths.length+1);
 }
 
 class Coord {
@@ -126,11 +130,11 @@ class NoPathForwardException implements Exception {
 
 
 // This is a lousy implementation of Dijkstra's algorithm
-(List<Coord>, int) findBestPath(List<List<Tile>> map, Coord start, Coord end, Direction dir) {
+(List<List<Coord>>, int) findBestPath(List<List<Tile>> map, Coord start, Coord end, Direction dir) {
   var queue = PriorityQueue<(Node, int)>((a,b) => a.$2.compareTo(b.$2));
 
   var distances = Map<Node, int>();
-  var prev = Map<Node, Node>();
+  var prevs = Map<Node, List<Node>>();
 
   var startNode = Node(start, dir);
   queue.add((startNode, 0));
@@ -145,30 +149,48 @@ class NoPathForwardException implements Exception {
         distance += 1000;
       }
       var prevDistance = distances[neighbour] ?? double.maxFinite.toInt();
+
+      // new best path to node
       if (distance < prevDistance) {
         distances[neighbour] = distance;
-        prev[neighbour] = node;
+        prevs[neighbour] = [ node ];
         queue.add((neighbour, distance));
+      }
+
+      // alt path to node
+      if (distance == prevDistance) {
+        var prevsOfNei = prevs[neighbour] ?? [];
+        prevsOfNei.add(node);
+        prevs[neighbour] = prevsOfNei;
       }
     });
   }
 
   var minCost = double.maxFinite.toInt();
-  Node? endNode = null;
+  var endNodes = <Node>[];
   distances.forEach((node, cost) {
-    if (node.coord == end && cost < minCost) {
+    if (node.coord == end && cost <= minCost) {
       minCost = cost;
-      endNode = node;
+      endNodes.add(node);
     }
   });
 
-  var path = <Coord>[];
-  while (endNode != null) {
-    path.add(endNode!.coord);
-    var prevNode = prev[endNode];
-    endNode = prevNode;
+  var paths = endNodes.map((node) => buildPaths(prevs, node, startNode)).flattenedToList;
+
+  return (paths, minCost);
+}
+
+List<List<Coord>> buildPaths(Map<Node, List<Node>> prevs, Node end, Node start) {
+  var prevNodes = prevs[end];
+  if (prevNodes == null) {
+    return [[start.coord]];
   }
 
-  return (path, minCost);
+  var paths = prevNodes.map((node) {
+    var prevPaths = buildPaths(prevs, node, start);
+    return prevPaths.map((path) => path + [node.coord]).toList(growable: false);
+  }).flattenedToList;
+
+  return paths;
 }
 
