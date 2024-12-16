@@ -1,0 +1,7 @@
+name: aoc24
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  collection: ^1.17.0
