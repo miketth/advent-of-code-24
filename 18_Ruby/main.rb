@@ -2,13 +2,12 @@
 
 def main
   # input_file = "input_sample.txt"
-  input_file = "input.txt"
+  input_file = 'input.txt'
   # end_coord = [6,6]
-  end_coord = [70,70]
+  end_coord = [70, 70]
   # bytes = 12
   bytes = 1024
   start_coord = [0, 0]
-
 
   obstacles = read_file(input_file)
 
@@ -16,9 +15,7 @@ def main
   puts min_cost
 
   good_until = bin_search(obstacles, start_coord, end_coord)
-  puts obstacles[good_until-1].join(",")
-
-
+  puts obstacles[good_until - 1].join(',')
 end
 
 def bin_search(obstacles, start_coord, end_coord)
@@ -48,28 +45,28 @@ def path_finder(obstacles, start_coord, end_coord)
   queue.put(0, start_coord)
   distances[start_coord] = 0
 
-  while queue.is_not_empty
+  while queue.not_empty?
     node = queue.get
     node_distance = distances[node]
 
     x, y = node[0], node[1]
 
-    neigbours = [
-      [x-1, y],
-      [x+1, y],
-      [x, y-1],
-      [x, y+1],
-    ].filter{|it| it[0] >= 0 && it[1] >= 0 && it[0] <= end_coord[0] && it[1] <= end_coord[1] }
-     .filter{ |it| !obstacles.include?(it) }
+    neighbours = [
+      [x - 1, y],
+      [x + 1, y],
+      [x, y - 1],
+      [x, y + 1]
+    ].filter { |it| it[0] >= 0 && it[1] >= 0 && it[0] <= end_coord[0] && it[1] <= end_coord[1] }
+                 .filter { |it| !obstacles.include?(it) }
 
-    neigbours.each do |neigbour|
-      prev_distance = distances[neigbour] || Float::INFINITY
+    neighbours.each do |neighbour|
+      prev_distance = distances[neighbour] || Float::INFINITY
       new_distance = node_distance + 1
 
       # new best path
       if new_distance < prev_distance
-        distances[neigbour] = new_distance
-        queue.put(new_distance, neigbour)
+        distances[neighbour] = new_distance
+        queue.put(new_distance, neighbour)
       end
     end
   end
@@ -84,38 +81,37 @@ def path_finder(obstacles, start_coord, end_coord)
   min_cost
 end
 
-
 class PrioQueue
   def initialize
     @hash = {}
   end
 
   def put(prio, value)
-    arr = @hash[prio] || Array.new
+    arr = @hash[prio] || []
     arr.push(value)
     @hash[prio] = arr
   end
 
   def get
-    min_prio = @hash.min_by{ |key, _| key }
+    min_prio = @hash.min_by { |key, _| key }
 
     key, val = min_prio[0], min_prio[1]
     ret = val.shift
-    if val.length == 0
+    if val.empty?
       @hash.delete(key)
     end
     ret
   end
 
-  def is_not_empty
-    @hash.length != 0
+  def not_empty?
+    !@hash.empty?
   end
-
 end
+
 def read_file(file_name)
-  File.open(file_name, "r")
-    .read.split("\n")
-    .map { |line| line.split(",").map(&:to_i) }
+  File.open(file_name, 'r')
+      .read.split("\n")
+      .map { |line| line.split(',').map(&:to_i) }
 end
 
 main
