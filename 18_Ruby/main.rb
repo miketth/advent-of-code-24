@@ -11,17 +11,39 @@ def main
 
 
   obstacles = read_file(input_file)
-  obstacles = obstacles[0, bytes]
 
-  min_cost = path_finder(obstacles, start_coord, end_coord)
+  min_cost = path_finder(obstacles[0, bytes], start_coord, end_coord)
   puts min_cost
 
+  good_until = bin_search(obstacles, start_coord, end_coord)
+  puts obstacles[good_until-1].join(",")
+
+
+end
+
+def bin_search(obstacles, start_coord, end_coord)
+  range_start = 0
+  range_end = obstacles.length
+
+  while range_start != range_end
+    midpoint = range_start + ((range_end - range_start) / 2)
+    obstacles_current = obstacles[0, midpoint]
+
+    cost = path_finder(obstacles_current, start_coord, end_coord)
+
+    if cost < Float::INFINITY # success, bin search up
+      range_start = midpoint + 1
+    else # fail, bin search down
+      range_end = midpoint
+    end
+  end
+
+  range_start
 end
 
 def path_finder(obstacles, start_coord, end_coord)
   queue = PrioQueue.new
   distances = {}
-  prevs = {}
 
   queue.put(0, start_coord)
   distances[start_coord] = 0
@@ -47,14 +69,7 @@ def path_finder(obstacles, start_coord, end_coord)
       # new best path
       if new_distance < prev_distance
         distances[neigbour] = new_distance
-        prevs[neigbour] = [ node ]
         queue.put(new_distance, neigbour)
-      end
-
-      # alt path with equal cost
-      if new_distance == prev_distance
-        prevs_of_neighbour = prevs[neigbour]
-        prevs_of_neighbour.push(node)
       end
     end
   end
