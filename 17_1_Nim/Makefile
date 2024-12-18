@@ -4,7 +4,7 @@ run-nim:
 	nim r main.nim
 
 build:
-	nim c main.nim
+	nim c -d:release main.nim
 
 run: build
 	./main
