@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "hashmap.h"
+
 typedef struct string_list {
     char** strings;
     int length;
@@ -135,7 +137,13 @@ bool has_prefix(const char* string, const char* prefix) {
     return true;
 }
 
-bool fulfill_design(const char* design, string_list available) {
+long int possible_arrangements(const char* design, const string_list available, hashmap* cache) {
+    const auto cached = get(cache, design);
+    if (cached != -1) {
+        return cached;
+    }
+
+    long int possibilities = 0;
     for (int i = 0; i < available.length; i++) {
         const auto pattern = available.strings[i];
         if (!has_prefix(design, pattern)) {
@@ -144,26 +152,34 @@ bool fulfill_design(const char* design, string_list available) {
 
         const auto remaining_design = design + strlen(pattern);
         if (strlen(remaining_design) == 0) {
-            return true;
+            possibilities++;
+            continue;
         }
-        if (fulfill_design(remaining_design, available)) {
-            return true;
-        }
+        possibilities += possible_arrangements(remaining_design, available, cache);
     }
 
-    return false;
+    add(cache, design, possibilities);
+
+    return possibilities;
 }
 
-void part_1(const processed_file data) {
-    int good = 0;
+void solve(const processed_file data) {
+    auto cache = new_hashmap();
+
+    int part_1 = 0;
+    long int part_2 = 0;
     for (int i = 0; i < data.designs.length; i++) {
         const auto design = data.designs.strings[i];
-        if (fulfill_design(design, data.available_patterns)) {
-            good++;
+        const auto possibilities = possible_arrangements(design, data.available_patterns, &cache);
+        if (possibilities != 0) {
+            part_1++;
+            part_2 += possibilities;
         }
     }
 
-    printf("%d\n", good);
+    printf("%d\n%ld\n", part_1, part_2);
+
+    release_map(&cache);
 }
 
 // const char* file_name = "input_sample.txt";
@@ -172,7 +188,7 @@ const char* file_name = "input.txt";
 int main(void) {
     auto data = read_file(file_name);
 
-    part_1(data);
+    solve(data);
 
     release_string_list(&data.available_patterns);
     release_string_list(&data.designs);
