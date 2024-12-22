@@ -1,13 +1,13 @@
 #include <algorithm>
 #include <fstream>
 #include <iostream>
-#include <limits.h>
 #include <map>
-#include <queue>
+#include <memory>
 #include <vector>
 
 using std::string;
 using std::vector;
+using std::shared_ptr;
 
 vector<string> read_file(const string& filename) {
     auto file = std::ifstream(filename);
@@ -49,8 +49,50 @@ const std::vector<std::vector<char>> dirpad = {
     throw std::runtime_error("key not found");
 }
 
+class CacheKey {
+    bool is_combo = false;
+    std::pair<char, char> simple = { '\0', '\0' };
+    string combo;
 
-vector<string> paths(const char& from, const char& to, bool is_numpad) {
+public:
+    CacheKey(const string& combo) {
+        this->is_combo = true;
+        this->combo = combo;
+    }
+
+    CacheKey(const std::pair<char, char>& simple) {
+        this->is_combo = false;
+        this->simple = simple;
+    }
+
+    auto operator<=>(const CacheKey& rhs) const {
+        if (is_combo != rhs.is_combo) {
+            return std::strong_ordering::less;
+        }
+        if (is_combo) {
+            return combo <=> rhs.combo;
+        }
+        return simple <=> rhs.simple;
+    }
+
+    auto operator==(const CacheKey& rhs) const {
+        if (is_combo != rhs.is_combo) {
+            return false;
+        }
+        if (is_combo) {
+            return combo == rhs.combo;
+        }
+        return simple == rhs.simple;
+    }
+};
+
+string best_path(const char& from, const char& to, std::map<CacheKey, string>& cache, const bool is_numpad = false) {
+    const std::pair simple_cache_key = { from, to };
+    const CacheKey cache_key = simple_cache_key;
+    if (cache.contains(cache_key)) {
+        return cache[cache_key];
+    }
+
     auto keypad_p = &dirpad;
     if (is_numpad) {
         keypad_p = &numpad;
@@ -78,49 +120,50 @@ vector<string> paths(const char& from, const char& to, bool is_numpad) {
 
 
     if (x_diff == 0 || y_diff == 0) {
-        return { horizontal + vertical };
+        auto solution = horizontal + vertical;
+        cache[cache_key] = solution ;
+        return solution;
     }
 
-    vector<string> possible;
-
-    // if horizontal->vertical possible
-    if (keypad[from_y][to_x] != '\0') {
-        possible.push_back(horizontal + vertical);
+    // if horizontal->vertical isn't possible
+    if (keypad[from_y][to_x] == '\0') {
+        auto solution = vertical + horizontal;
+        cache[cache_key] = solution;
+        return solution;
     }
 
-    // if vertical->horizontal possible
-    if (keypad[to_y][from_x] != '\0') {
-        possible.push_back(vertical + horizontal);
+    // if vertical->horizontal isn't possible
+    if (keypad[to_y][from_x] == '\0') {
+        auto solution = horizontal + vertical;
+        cache[cache_key] = solution;
+        return solution;
     }
 
-    return possible;
+    // if left: horiz->vert is better
+    if (x_diff < 0) {
+        auto solution = horizontal + vertical;
+        cache[cache_key] = solution;
+        return solution;
+    }
+
+    // if right: vert->horiz is better
+    auto solution = vertical + horizontal;
+    cache[cache_key] = solution;
+    return solution;
 }
 
-vector<string> paths(const string& combination, bool is_numpad) {
-    vector<string> ret = {""};
+string best_path(const string& combination, std::map<CacheKey, string>& cache, const bool is_numpad = false) {
+    string ret;
     char prev = 'A';
     for (const auto& next: combination) {
-        vector<string> next_ret;
-        auto paths_here = paths(prev, next, is_numpad);
-        for (const auto& r: ret) {
-            for (const auto& p: paths_here) {
-                next_ret.push_back(r+p+'A');
-            }
-        }
+        auto path_here = best_path(prev, next, cache, is_numpad);
+        ret += path_here + 'A';
         prev = next;
-        ret = next_ret;
     }
+
     return ret;
 }
 
-vector<string> paths(const vector<string>& combinations) {
-    vector<string> ret;
-    for (const auto& c: combinations) {
-        auto paths_for_c = paths(c, false);
-        ret.insert(ret.end(), paths_for_c.begin(), paths_for_c.end());
-    }
-    return ret;
-}
 
 // const string filename = "input_sample.txt";
 const string filename = "input.txt";
@@ -130,20 +173,17 @@ int main() {
 
     unsigned long int sum = 0;
 
+    std::map<CacheKey, string> numpad_cache;
+    std::map<CacheKey, string> dirpad_cache;
     for (const auto& code: codes) {
         vector<string> final_paths;
 
-        auto paths_for_code = paths(code, true);
+        auto path = best_path(code, numpad_cache, true);
         for (int i = 0; i < 2; i++) {
-            paths_for_code = paths(paths_for_code);
+            path = best_path(path, dirpad_cache);
         }
 
-        auto shortest_path = *std::ranges::min_element(paths_for_code, [](const string& s1, const string& s2) {
-            return s1.length() < s2.length();
-        });
-
-        std::cout << code << ": " << shortest_path << std::endl;
-        sum += shortest_path.length() * stoi(code);
+        sum += path.length() * stoi(code);
     }
 
     std::cout << sum << std::endl;
