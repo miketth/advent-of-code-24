@@ -22,7 +22,7 @@ def main(): Unit =
 def bruteForce(prices: List[List[Int]], diffs: List[List[Int]]): Int =
   val possible = -9 to 9
   val matchingRanges = (for (d1 <- possible) yield {
-    println(s"Trying ${d1}")
+    println(s"Trying sequences starting with ${d1}")
     val rangesStartingWith1 = diffs.map(d => d.zipWithIndex.dropRight(3).filter((v, idx) => v == d1).map((v, idx) => idx))
     for (d2 <- possible) yield {
       val rangesStartingWith12 = diffs.zip(rangesStartingWith1).map((d, ranges) => {
@@ -54,26 +54,6 @@ def bruteForce(prices: List[List[Int]], diffs: List[List[Int]]): Int =
     }.flatten
   }.flatten).flatten
   matchingRanges.max
-
-
-def generateAllDiffs(): List[List[Int]] =
-  val possible = -9 to 9
-  (for (d1 <- possible)
-    yield for (d2 <- possible)
-      yield for (d3 <- possible)
-        yield for (d4 <- possible)
-          yield List(d1, d2, d3, d4)).flatten.flatten.flatten.toList
-
-def checkSolution(prices: List[List[Int]], diffs: List[List[Int]], solution: List[Int]): Int =
-  val indexes = diffs.map(d => d.indexOfSlice(solution))
-  prices.zip(indexes).map((p, idx) => getWithIndexOrZero(p, idx, solution.length)).sum()
-
-def getWithIndexOrZero(p: List[Int], idx: Int, offset: Int): Int =
-  if (idx < 0) {
-    return 0
-  }
-
-  p(idx+offset)
 
 def pricesForNIter(start: BigInt, n: Int): List[Int] =
   val emptyList = List[Int]()
