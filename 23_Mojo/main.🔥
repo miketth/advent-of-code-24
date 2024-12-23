@@ -1,0 +1,89 @@
+from algorithm import map
+from collections import Dict
+
+def read_file(filename: String) -> List[List[String]]:
+    with open(filename, "r") as f:
+        lines = f.read().split("\n")
+        var ret = List[List[String]]()
+        for l in lines:
+            if l[] == "":
+                continue
+            ret.append(l[].split("-"))
+        return ret
+
+
+def build_connection(data: List[List[String]]) -> Dict[String, List[String]]:
+    var ret = Dict[String, List[String]]()
+    for conn in data:
+        var a = conn[][0]
+        var b = conn[][1]
+
+        var a_conn = ret.get(a, List[String]())
+        a_conn.append(b)
+        ret[a] = a_conn
+
+        var b_conn = ret.get(b, List[String]())
+        b_conn.append(a)
+        ret[b] = b_conn
+    return ret
+
+
+def gen_combos(connections: Dict[String, List[String]]) -> List[List[String]]:
+    var ret = List[List[String]]()
+
+    var nodes = List[String]()
+    for n in connections:
+        nodes.append(n[])
+
+    var nodeCnt = len(nodes)
+    for i1 in range(0, nodeCnt):
+        var k1 = nodes[i1]
+        for i2 in range(i1+1, nodeCnt):
+            var k2 = nodes[i2]
+            for i3 in range(i2+1, nodeCnt):
+                var k3 = nodes[i3]
+                if k1[0] == 't' or k2[0] == 't' or k3[0] == 't':
+                    ret.append(List[String](k1, k2, k3))
+
+    return ret
+
+
+def is_clique(connections: Dict[String, List[String]], clique: List[String]) -> Bool:
+    for from_n in clique:
+        var nei = connections[from_n[]]
+        for to_n in clique:
+            if from_n[] == to_n[]: # todo ptr compare
+                continue
+            if to_n[] not in nei:
+                return False
+    return True
+
+
+def has_t_node(combo: List[String]) -> Bool:
+    for n in combo:
+        if n[][0] == 't':
+            return True
+    return False
+
+
+def solution(connections: Dict[String, List[String]]) -> Int:
+    var combos = gen_combos(connections)
+
+    var ret = 0
+    for c in combos:
+        if is_clique(connections, c[]):
+            ret += 1
+    return ret
+
+
+# var filename = "input_sample.txt"
+var filename = "input.txt"
+
+def main():
+    data = read_file(filename)
+    graph = build_connection(data)
+    var s = solution(graph)
+    print(s)
+
+
+
