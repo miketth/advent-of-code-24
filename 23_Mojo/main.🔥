@@ -52,7 +52,7 @@ def is_clique(connections: Dict[String, List[String]], clique: List[String]) -> 
     for from_n in clique:
         var nei = connections[from_n[]]
         for to_n in clique:
-            if from_n[] == to_n[]: # todo ptr compare
+            if from_n[] == to_n[]:
                 continue
             if to_n[] not in nei:
                 return False
@@ -75,6 +75,42 @@ def solution(connections: Dict[String, List[String]]) -> Int:
             ret += 1
     return ret
 
+var memo = Dict[String, List[String]]()
+def max_clique(connections: Dict[String, List[String]], start_clique: List[String]) -> List[String]:
+    var start_clique_sorted = start_clique
+    sort(start_clique_sorted)
+    var memo_key = ",".join(start_clique_sorted)
+    if memo_key in memo:
+        return memo[memo_key]
+
+    if not is_clique(connections, start_clique):
+        memo[memo_key] = List[String]()
+        return List[String]()
+
+    var clique_nei = List[String]()
+    for node in start_clique:
+        var nei = connections[node[]]
+        for n in nei:
+            if n[] not in start_clique and n[] not in clique_nei:
+                clique_nei.append(n[])
+
+    # if not possible to add neighbours, we are done
+    if len(clique_nei) == 0:
+        memo[memo_key] = start_clique
+        return start_clique
+
+    var max_c = start_clique
+    for n in clique_nei:
+        var new_clique = start_clique
+        new_clique.append(n[])
+        var this_max_clique = max_clique(connections, new_clique)
+        if len(this_max_clique) > len(max_c):
+            max_c = this_max_clique
+
+    memo[memo_key] = max_c
+    return max_c
+
+
 
 # var filename = "input_sample.txt"
 var filename = "input.txt"
@@ -82,8 +118,18 @@ var filename = "input.txt"
 def main():
     data = read_file(filename)
     graph = build_connection(data)
-    var s = solution(graph)
-    print(s)
+    print("solving part 1...")
+    print(solution(graph))
+    print("solving part 2...")
+    var max_clique_found = List[String]()
+    for n in graph:
+        print("evaluating from " + n[])
+        var clique_size = max_clique(graph, List(n[]))
+        if len(clique_size) > len(max_clique_found):
+            max_clique_found = clique_size
+
+    sort(max_clique_found)
+    print(",".join(max_clique_found))
 
 
 
